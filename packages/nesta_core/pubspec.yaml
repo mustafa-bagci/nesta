@@ -1,0 +1,11 @@
+name: nesta_core
+description: Nesta için platformdan bağımsız iş mantığı (modeller, egzersiz kuralları, güvenlik).
+version: 1.0.0
+publish_to: none
+
+environment:
+  sdk: ^3.6.0
+
+dev_dependencies:
+  lints: ^5.0.0
+  test: ^1.25.0
