@@ -115,8 +115,9 @@ class SessionController extends ChangeNotifier {
 
   int get repsInSet => (_checker?.summary.reps ?? 0) - _repsAtSetStart;
   int get totalReps {
-    if (exercise.mode != ExerciseMode.guided)
+    if (exercise.mode != ExerciseMode.guided) {
       return _checker?.summary.reps ?? 0;
+    }
     final partial = phase == SessionPhase.active && _guidedCycleMs > 0
         ? _setActiveMs ~/ _guidedCycleMs
         : 0;

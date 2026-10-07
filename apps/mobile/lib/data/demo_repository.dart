@@ -131,8 +131,9 @@ class DemoRepository implements NestaRepository {
   @override
   Future<void> register(String email, String password) async {
     final e = _norm(email);
-    if (!e.contains('@'))
+    if (!e.contains('@')) {
       throw const RepositoryException('E-posta adresi geçersiz.');
+    }
     if (password.length < 6) {
       throw const RepositoryException('Şifre en az 6 karakter olmalıdır.');
     }

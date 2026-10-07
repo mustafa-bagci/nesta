@@ -70,8 +70,9 @@ String? gateFor(AppState s) {
   final p = s.patient;
   if (p == null) return '/profile-setup';
   if (p.screening == null) return '/screening';
-  if (p.screening!.outcome == ScreeningOutcome.ineligible)
+  if (p.screening!.outcome == ScreeningOutcome.ineligible) {
     return '/screening-result';
+  }
   if (p.midwifeId == null) return '/link';
   if (!p.clearance.isApproved) return '/waiting';
   return null;
