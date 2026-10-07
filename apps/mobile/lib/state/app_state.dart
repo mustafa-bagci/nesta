@@ -335,6 +335,7 @@ class VoiceSettings {
     this.speechRate = 0.5,
     this.useFrontCamera = true,
     this.showSkeleton = true,
+    this.researchLogging = false,
   });
 
   final bool voiceEnabled;
@@ -342,11 +343,15 @@ class VoiceSettings {
   final bool useFrontCamera;
   final bool showSkeleton;
 
+  /// Araştırma modu: seanslarda kare bazında ölçüm kaydı tutulur.
+  final bool researchLogging;
+
   static VoiceSettings load(SharedPreferences p) => VoiceSettings(
     voiceEnabled: p.getBool('voice_enabled') ?? true,
     speechRate: p.getDouble('speech_rate') ?? 0.5,
     useFrontCamera: p.getBool('front_camera') ?? true,
     showSkeleton: p.getBool('show_skeleton') ?? true,
+    researchLogging: p.getBool('research_logging') ?? false,
   );
 
   Future<void> save(SharedPreferences p) async {
@@ -354,6 +359,7 @@ class VoiceSettings {
     await p.setDouble('speech_rate', speechRate);
     await p.setBool('front_camera', useFrontCamera);
     await p.setBool('show_skeleton', showSkeleton);
+    await p.setBool('research_logging', researchLogging);
   }
 
   VoiceSettings copyWith({
@@ -361,10 +367,12 @@ class VoiceSettings {
     double? speechRate,
     bool? useFrontCamera,
     bool? showSkeleton,
+    bool? researchLogging,
   }) => VoiceSettings(
     voiceEnabled: voiceEnabled ?? this.voiceEnabled,
     speechRate: speechRate ?? this.speechRate,
     useFrontCamera: useFrontCamera ?? this.useFrontCamera,
     showSkeleton: showSkeleton ?? this.showSkeleton,
+    researchLogging: researchLogging ?? this.researchLogging,
   );
 }

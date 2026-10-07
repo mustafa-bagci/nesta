@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../services/frame_logger.dart';
 import '../../services/heart_rate_source.dart';
 import '../../state/app_state.dart';
 import '../../theme.dart';
@@ -81,6 +82,26 @@ class ProfileScreen extends StatelessWidget {
       context,
       () => context.read<AppState>().deleteAccount(password.text),
       success: 'Hesabınız silindi.',
+    );
+  }
+
+  Future<void> _shareFrameLogs(BuildContext context) async {
+    final box = context.findRenderObject() as RenderBox?;
+    final files = await FrameLogger.files();
+    if (files.isEmpty) {
+      throw Exception(
+        'Henüz kare kaydı yok. Araştırma modu açıkken kameralı '
+        'bir egzersiz yapın.',
+      );
+    }
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [for (final f in files) XFile(f.path)],
+        subject: 'Nesta kare kayıtları',
+        sharePositionOrigin: box == null
+            ? null
+            : box.localToGlobal(Offset.zero) & box.size,
+      ),
     );
   }
 
@@ -277,6 +298,38 @@ class ProfileScreen extends StatelessWidget {
             value: s.showSkeleton,
             onChanged: (v) => state.updateSettings(s.copyWith(showSkeleton: v)),
           ),
+          const SizedBox(height: 16),
+          const SectionTitle('Araştırma'),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Araştırma modu (kare kaydı)'),
+            subtitle: const Text(
+              'Teknik doğrulama için kameralı seanslarda her karenin eklem '
+              'koordinatları ve ölçümleri telefonda CSV olarak saklanır. '
+              'Görüntü kaydedilmez.',
+            ),
+            value: s.researchLogging,
+            onChanged: (v) =>
+                state.updateSettings(s.copyWith(researchLogging: v)),
+          ),
+          if (s.researchLogging) ...[
+            _tile(
+              context,
+              Icons.ios_share_rounded,
+              'Kare kayıtlarını paylaş',
+              () => runWithFeedback(context, () => _shareFrameLogs(context)),
+            ),
+            _tile(
+              context,
+              Icons.delete_sweep_outlined,
+              'Kare kayıtlarını sil',
+              () => runWithFeedback(context, () async {
+                for (final f in await FrameLogger.files()) {
+                  await f.delete();
+                }
+              }, success: 'Kare kayıtları silindi.'),
+            ),
+          ],
           const SizedBox(height: 16),
           const SectionTitle('Gizlilik'),
           _tile(

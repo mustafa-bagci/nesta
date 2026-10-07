@@ -1,0 +1,141 @@
+rules_version = '2';
+
+// Nesta Firestore güvenlik kuralları.
+//
+// Roller:
+//   - Gebe (pregnant): yalnızca kendi kaydını, seanslarını okur/yazar; kendi
+//     egzersiz onayını veremez.
+//   - Ebe (midwife): yalnızca kendisine bağlı gebelerin kayıtlarını okur ve
+//     yalnızca "clearance" (egzersiz onayı) alanını değiştirebilir.
+// Tarihler epoch milisaniye olarak saklanır.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isMidwife() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && userDoc().data.role == 'midwife';
+    }
+
+    function patientDoc(pid) {
+      return get(/databases/$(database)/documents/patients/$(pid));
+    }
+
+    function isMidwifeOf(pid) {
+      return isMidwife() && patientDoc(pid).data.midwifeId == request.auth.uid;
+    }
+
+    // ---------------------------------------------------------------- users
+    match /users/{uid} {
+      allow read: if isSelf(uid);
+      allow create: if isSelf(uid)
+        && request.resource.data.keys().hasOnly(['role', 'createdAt'])
+        && request.resource.data.role in ['pregnant', 'midwife'];
+      // Rol sonradan değiştirilemez.
+      allow update: if false;
+      allow delete: if isSelf(uid);
+    }
+
+    // ------------------------------------------------------------- midwives
+    match /midwives/{uid} {
+      // Gebeler bağlandıkları ebenin adını ve kurumunu görebilmelidir.
+      allow read: if signedIn();
+      allow create, update: if isSelf(uid) && isMidwife()
+        && request.resource.data.uid == uid
+        && request.resource.data.fullName is string
+        && request.resource.data.fullName.size() > 0
+        && request.resource.data.inviteCode is string;
+      allow delete: if false;
+    }
+
+    // ---------------------------------------------------------- inviteCodes
+    match /inviteCodes/{code} {
+      // Kod yalnızca tam olarak bilinerek sorgulanabilir; listelenemez.
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if isMidwife()
+        && code.size() == 6
+        && request.resource.data.keys().hasOnly(['midwifeId'])
+        && request.resource.data.midwifeId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // ------------------------------------------------------------- patients
+    match /patients/{pid} {
+
+      // Gebe kendi onayını "approved" veya "rejected" yapamaz; mevcut kararı
+      // olduğu gibi koruyabilir. Ebe değiştirirse yeni onay beklenir.
+      function patientClearanceOk() {
+        let next = request.resource.data.clearance;
+        let midwifeChanged = resource != null
+          && resource.data.midwifeId != request.resource.data.midwifeId;
+        return next.status in ['not_requested', 'pending']
+          || (!midwifeChanged && resource != null && next == resource.data.clearance);
+      }
+
+      function validPatient() {
+        let d = request.resource.data;
+        return d.uid == pid
+          && d.profile is map
+          && d.profile.fullName is string
+          && d.clearance is map
+          && (d.midwifeId == null || d.midwifeId is string);
+      }
+
+      // Sorgularda (ebenin gebe listesi) kural, sorgunun kendisinden
+      // değerlendirilebilmelidir; bu yüzden ayrı bir get() yerine
+      // resource.data kullanılır.
+      allow read: if isSelf(pid)
+        || (isMidwife() && resource.data.midwifeId == request.auth.uid);
+
+      allow create: if isSelf(pid) && validPatient()
+        && request.resource.data.clearance.status in ['not_requested', 'pending'];
+
+      allow update: if (isSelf(pid) && validPatient() && patientClearanceOk())
+        || (isMidwife()
+          && resource.data.midwifeId == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['clearance', 'updatedAt'])
+          && request.resource.data.clearance.status in ['approved', 'rejected', 'pending']
+          && request.resource.data.clearance.decidedBy == request.auth.uid);
+
+      allow delete: if isSelf(pid);
+
+      match /sessions/{sid} {
+        allow read: if isSelf(pid) || isMidwifeOf(pid);
+        allow create, update: if isSelf(pid)
+          && request.resource.data.patientId == pid
+          && request.resource.data.id == sid;
+        allow delete: if isSelf(pid);
+      }
+    }
+
+    // --------------------------------------------------------------- alerts
+    match /alerts/{aid} {
+      // Gebe yalnızca kendi adına ve bağlı olduğu ebeye uyarı oluşturabilir.
+      allow create: if signedIn()
+        && request.resource.data.id == aid
+        && request.resource.data.patientId == request.auth.uid
+        && request.resource.data.midwifeId == patientDoc(request.auth.uid).data.midwifeId
+        && request.resource.data.acknowledgedAt == null;
+      allow read: if isMidwife() && resource.data.midwifeId == request.auth.uid;
+      // Ebe yalnızca "görüldü" zamanını işaretleyebilir.
+      allow update: if isMidwife()
+        && resource.data.midwifeId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['acknowledgedAt']);
+      allow delete: if false;
+    }
+  }
+}

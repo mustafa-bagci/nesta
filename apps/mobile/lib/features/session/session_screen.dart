@@ -7,6 +7,7 @@ import 'package:nesta_core/nesta_core.dart';
 import 'package:provider/provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+import '../../services/frame_logger.dart';
 import '../../services/heart_rate_source.dart';
 import '../../services/pose_camera.dart';
 import '../../services/voice_coach.dart';
@@ -51,6 +52,8 @@ class _SessionScreenState extends State<SessionScreen>
   HeartRateAvailability? _hrAvailability;
   bool _cameraless = false;
   bool _navigated = false;
+  FrameLogger? _logger;
+  final Stopwatch _logClock = Stopwatch();
 
   AppState get _state => context.read<AppState>();
 
@@ -85,9 +88,23 @@ class _SessionScreenState extends State<SessionScreen>
       _camera = cam;
       cam.addListener(_onCameraChanged);
       await cam.initialize();
+      if (state.settings.researchLogging && cam.failure == null) {
+        _logger = await FrameLogger.start(e);
+        _logClock.start();
+      }
       _frameSub = cam.frames.listen((f) {
         _lastFrame = f;
-        _controller?.onPose(f.pose);
+        final c = _controller;
+        c?.onPose(f.pose);
+        if (c != null && c.phase == SessionPhase.active) {
+          _logger?.add(
+            tMs: _logClock.elapsedMilliseconds,
+            imageWidth: f.imageSize.width,
+            imageHeight: f.imageSize.height,
+            pose: f.pose,
+            feedback: c.feedback,
+          );
+        }
       });
     }
     if (!mounted) return;
@@ -174,6 +191,7 @@ class _SessionScreenState extends State<SessionScreen>
     WakelockPlus.disable().catchError((_) {});
     _ticker?.cancel();
     _frameSub?.cancel();
+    _logger?.close();
     _camera?.removeListener(_onCameraChanged);
     _camera?.dispose();
     _controller?.dispose();

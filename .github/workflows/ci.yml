@@ -1,0 +1,131 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: "3.47.6"
+
+jobs:
+  core:
+    name: Çekirdek paket testleri
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - working-directory: packages/nesta_core
+        run: |
+          dart pub get
+          dart format --output=none --set-exit-if-changed .
+          dart analyze --fatal-infos
+          dart test
+
+  mobile:
+    name: Mobil uygulama (test + APK)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Firebase yapılandırması (varsa)
+        working-directory: apps/mobile
+        env:
+          FIREBASE_OPTIONS_MOBILE: ${{ secrets.FIREBASE_OPTIONS_MOBILE }}
+        run: |
+          if [ -n "$FIREBASE_OPTIONS_MOBILE" ]; then
+            echo "$FIREBASE_OPTIONS_MOBILE" | base64 -d > lib/firebase_options.dart
+            echo "Firebase yapılandırması yüklendi."
+          else
+            echo "Firebase gizli anahtarı yok: APK demo modunda çalışacak."
+          fi
+      - name: Analiz ve testler
+        working-directory: apps/mobile
+        run: |
+          flutter pub get
+          flutter analyze --fatal-infos
+          flutter test
+      - name: Yayın imzası (varsa)
+        working-directory: apps/mobile/android
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEY_PROPERTIES: ${{ secrets.ANDROID_KEY_PROPERTIES }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > app/nesta-release.jks
+            echo "$ANDROID_KEY_PROPERTIES" > key.properties
+          fi
+      - name: APK derle
+        working-directory: apps/mobile
+        run: flutter build apk --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nesta-android-apk
+          path: apps/mobile/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
+
+  panel:
+    name: Ebe paneli (test + web)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Firebase yapılandırması (varsa)
+        working-directory: apps/panel
+        env:
+          FIREBASE_OPTIONS_PANEL: ${{ secrets.FIREBASE_OPTIONS_PANEL }}
+        run: |
+          if [ -n "$FIREBASE_OPTIONS_PANEL" ]; then
+            echo "$FIREBASE_OPTIONS_PANEL" | base64 -d > lib/firebase_options.dart
+          fi
+      - working-directory: apps/panel
+        run: |
+          flutter pub get
+          flutter analyze --fatal-infos
+          flutter test
+          flutter build web --release --no-web-resources-cdn
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nesta-panel-web
+          path: apps/panel/build/web
+          retention-days: 30
+
+  firestore-rules:
+    name: Firestore güvenlik kuralları
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: firebase/package-lock.json
+      - working-directory: firebase
+        run: |
+          npm ci
+          npm test
