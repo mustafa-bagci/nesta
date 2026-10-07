@@ -91,7 +91,8 @@ String _csvCell(Object? v) {
 
 /// Seansları araştırma analizi için CSV'ye dönüştürür.
 ///
-/// [anonymousId] verilirse gebenin kimliği yerine bu değer yazılır.
+/// [anonymousId] verilirse gebenin kimliği yerine bu değer, seans kimliği
+/// yerine de sıra numarası yazılır.
 String sessionsToCsv(List<ExerciseSession> sessions,
     {String Function(String patientId)? anonymousId}) {
   const header = [
@@ -117,11 +118,14 @@ String sessionsToCsv(List<ExerciseSession> sessions,
     'sonrasi_belirti',
   ];
   final rows = <List<Object?>>[header];
-  for (final s in sessions) {
+  for (var i = 0; i < sessions.length; i++) {
+    final s = sessions[i];
     final hr = s.heartRate;
     rows.add([
       anonymousId?.call(s.patientId) ?? s.patientId,
-      s.id,
+      // Anonim dışa aktarımda seans kimliği de gizlenir; kimlikler kullanıcı
+      // kimliğinden türetilmiş olabilir.
+      anonymousId == null ? s.id : 'S${(i + 1).toString().padLeft(5, '0')}',
       s.exerciseId,
       exerciseById(s.exerciseId)?.name ?? '',
       s.startedAt.toUtc().toIso8601String(),

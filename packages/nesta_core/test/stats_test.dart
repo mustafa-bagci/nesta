@@ -53,7 +53,7 @@ void main() {
     final lines = csv.split('\n');
     expect(lines.first, startsWith('katilimci,seans_id'));
     expect(lines.length, 2);
-    expect(lines[1], startsWith('P-001,n1,kedi_inek,Kedi-İnek Gevşeme'));
+    expect(lines[1], startsWith('P-001,S00001,kedi_inek,Kedi-İnek Gevşeme'));
   });
 
   test('CSV özel karakterleri tırnaklar', () {

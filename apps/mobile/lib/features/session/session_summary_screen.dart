@@ -113,7 +113,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
                 ),
                 _stat(
                   'Tekrar',
-                  '${s.reps}',
+                  s.reps == 0 ? '–' : '${s.reps}',
                   Icons.repeat_rounded,
                   NestaColors.peachSoft,
                 ),

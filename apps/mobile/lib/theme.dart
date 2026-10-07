@@ -44,6 +44,7 @@ ThemeData buildTheme() {
   );
   final base = ThemeData(
     useMaterial3: true,
+    fontFamily: 'Inter',
     colorScheme: scheme,
     scaffoldBackgroundColor: NestaColors.background,
   );
@@ -67,6 +68,7 @@ ThemeData buildTheme() {
       scrolledUnderElevation: 0,
       centerTitle: true,
       titleTextStyle: TextStyle(
+        fontFamily: 'Inter',
         color: NestaColors.ink,
         fontSize: 18,
         fontWeight: FontWeight.w800,
@@ -77,7 +79,11 @@ ThemeData buildTheme() {
       style: FilledButton.styleFrom(
         minimumSize: const Size.fromHeight(52),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
-        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        textStyle: const TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
@@ -85,7 +91,11 @@ ThemeData buildTheme() {
         minimumSize: const Size.fromHeight(52),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
         side: const BorderSide(color: NestaColors.primary),
-        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        textStyle: const TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
@@ -113,7 +123,11 @@ ThemeData buildTheme() {
       backgroundColor: Colors.white,
       indicatorColor: NestaColors.mintSoft,
       labelTextStyle: WidgetStateProperty.all(
-        const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+        const TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     ),
     chipTheme: base.chipTheme.copyWith(

@@ -1,5 +1,5 @@
-name: nesta
-description: "Nesta: riskli gebeliklerde güvenli egzersiz asistanı."
+name: nesta_panel
+description: "Nesta ebe paneli."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -34,24 +34,16 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
-  camera: ^0.12.1
-  google_mlkit_pose_detection: ^0.16.1
-  flutter_tts: ^4.2.5
-  health: ^13.3.2
   firebase_core: ^4.15.0
   firebase_auth: ^6.7.0
   cloud_firestore: ^6.10.0
   provider: ^6.1.5+1
-  go_router: ^18.0.2
-  shared_preferences: ^2.5.6
-  share_plus: ^13.3.1
-  path_provider: ^2.1.6
   intl: ^0.20.3
-  wakelock_plus: ^1.8.1
-  nesta_core:
-    path: ../../packages/nesta_core
+  web: ^1.1.1
   flutter_localizations:
     sdk: flutter
+  nesta_core:
+    path: ../../packages/nesta_core
 
 dev_dependencies:
   flutter_test:
