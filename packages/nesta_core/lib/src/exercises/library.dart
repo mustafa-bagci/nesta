@@ -309,7 +309,8 @@ final supportedPlieSquat = Exercise(
     metric: (p) =>
         _avgOf(_kneeAngle(p, SideJoints.left), _kneeAngle(p, SideJoints.right)),
     low: 140,
-    high: 160,
+    // Geniş duruşta önden ölçülen diz açısı ayakta ~165° olduğundan eşik 155°.
+    high: 155,
   ),
   demoFrames: [
     _front({
